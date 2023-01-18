@@ -1,0 +1,72 @@
+#!/bin/bash
+# =============================================================================================
+# Author:		Mridul Ranjan
+# Description		Monitors service ports and send alert if down
+# ---------------------------------------------------------------------------------------------
+# Last Upated:          2022-09-21
+# ============================================================================================= 
+
+# ---------------------------------------------------------------------------------------------
+# FUNCTIONS
+# ---------------------------------------------------------------------------------------------
+function svc_down()
+{
+	echo "$timestamp:$1:$2:DOWN" >> $svc_history
+
+	alert_limit=$3
+	alert_count=$(grep -w $1:$2 $alert_tracker | awk -F: '{print $NF}')
+
+	if [[ -z $alert_count ]]; then
+		alert_count=1
+		echo "$timestamp:$1:$2:$alert_count" >> $alert_tracker
+		talert "$1:$2 DOWN ($alert_count)"
+	else
+		((alert_count++))
+
+		grep -w $1:$2 $alert_tracker >> $alert_history
+		sed -i "/$1:$2/ s/^.*/$timestamp:$1:$2:$alert_count/" $alert_tracker
+
+		if ((alert_count < $alert_limit)); then
+			talert "$1:$2 DOWN ($alert_count)"
+		elif ((alert_count == $alert_limit)); then
+			talert "$1:$2 DOWN ($alert_count/MAX)"
+		fi	
+	fi
+}
+
+function svc_up()
+{
+	echo "$timestamp:$1:$2:UP" >> $svc_history
+
+	svc_info=$(grep -w $1:$2 $alert_tracker)
+
+	if [[ ! -z $svc_info ]]; then
+		echo "$svc_info" >> $alert_history
+		sed -i "/$1:$2/d" $alert_tracker
+		talert "$1:$2 UP"
+	fi
+}
+
+# ---------------------------------------------------------------------------------------------
+# VARIABLES
+# ---------------------------------------------------------------------------------------------
+export PATH=$PATH:/usr/local/bin:$HOME/bin
+cfg=$0.cfg
+alert_tracker=/tmp/port_monitor.tracker
+alert_history=/tmp/port_monitor.history
+svc_history=/tmp/svc.history
+
+# ---------------------------------------------------------------------------------------------
+# MAIN
+# ---------------------------------------------------------------------------------------------
+timestamp=$(date +%Y%m%d.%H%M%S)
+
+grep -v \# $cfg | while read dst port alert_limit
+do
+	nc -vz -w3 $dst $port > /dev/null 2>&1 && svc_up $dst $port || svc_down $dst $port $alert_limit
+done 
+
+# ---------------------------------------------------------------------------------------------------------
+# EOF
+# ---------------------------------------------------------------------------------------------------------
+

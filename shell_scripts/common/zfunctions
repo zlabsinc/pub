@@ -1,0 +1,100 @@
+#!/bin/bash
+# =======================================================================================
+# Description:		My Custom Functions          
+# Author:               Mridul Ranjan
+# ---------------------------------------------------------------------------------------
+# Version:              2.0
+# Last Updated:         2022-09-04
+# Initial Draft:        2021-07-14
+# =======================================================================================
+
+# =======================================================================================
+# FINAL
+# =======================================================================================
+function zf_echo()
+{
+	echo "[$(date +%Y%m%d.%H%M%S)] $1"
+}
+
+function zf_timestamp()
+{
+	echo "$(date +%Y%m%d.%H%M%S)"
+}
+
+function zf_line()
+{
+        cols=$(tput cols)
+        char=${1--}
+        len=${2-$cols}
+
+        printf "%-${len}s" "$1" | sed "s/ /${char}/g"; echo
+}
+
+function zf_header()
+{
+        header_name=${1:-default}
+        header_name=$(echo $header_name | tr 'a-z' 'A-Z')
+
+        zf_line "-"
+        echo "# $header_name"
+        zf_line "-"
+}
+
+function zf_exit()
+{
+	if [[ -z $1 ]]; then
+		exitCode=0	
+	else
+		exitCode=$(echo $1 | awk -F'|' '{print $1}')
+		exitMsg=$(echo $1 | awk -F'|' '{print $2}')
+
+		zf_header "EXIT MESSAGE: $exitMsg"
+	fi
+
+        exit $exitCode
+}
+
+function zf_printvar()
+{
+        printf "%-25s %-s\n" "$1" "$2"
+}
+
+function zf_detect_env()
+{
+        [ -f /proc/device-tree/model ] && _HW="Pi" || _HW="Regular"
+
+        _KERNEL=$(uname)
+        if [[ $_KERNEL == "Linux" ]]; then
+                _OS_DISTRIB="Unknown"
+                grep 'Red Hat' /proc/version > /dev/null 2>&1 && _OS_DISTRIB="RedHat"
+                grep 'Ubuntu' /proc/version > /dev/null 2>&1 && _OS_DISTRIB="Ubuntu"
+                [[ $_OS_DISTRIB == 'Unknown' ]] && _exit ${FUNCNAME[0]}
+        else
+                _OS_DISTRIB="UKNOWN"
+        fi
+
+        _USER=$(id -un)
+        _UID=$(id -u)
+}
+
+function zf_print_env()
+{
+        zf_header "ENVIRONMENT"
+        zf_printvar "Hardware" "$_HW"
+        zf_printvar "Platform" "$_KERNEL"
+        zf_printvar "OS Distribution" "$_OS_DISTRIB"
+        zf_printvar "Run User" $_USER
+        zf_printvar "Run User ID" $_UID
+	echo
+}
+
+function zf_isNumber()
+{
+        return $(echo "$1" | tr '\ ' 'x' | sed 's/[0-9]//g' | wc -w)
+}
+
+# =======================================================================================
+# TEMP/UNSORTED 
+# =======================================================================================
+
+

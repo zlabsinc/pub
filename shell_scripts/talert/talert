@@ -1,0 +1,32 @@
+#!/bin/bash
+# ------------------------------------------------------------------------
+# Description:		Sends a Transmission BOT alert
+# Last Update: 		2022-09-21
+# ------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------
+# VARIABLES | CHANGE BASED ON YOUR PERSONAL TELEGRAM BOT
+# ------------------------------------------------------------------------
+BOTID=""
+TOKENID=""
+CHATID=""
+
+# ------------------------------------------------------------------------
+# VARIABLES | DO NOT CHANGE
+# ------------------------------------------------------------------------
+BOTURL="https://api.telegram.org/bot${TOKENID}/sendMessage"
+tmpFile=/tmp/$$.tmp
+TIMESTAMP=$(date +%Y%m%d.%H%M%S)
+USERNAME=$(whoami)
+SYSTEMNAME=$(hostname -s)
+
+echo "[ $TIMESTAMP ] [ $USERNAME@$SYSTEMNAME ]" > $tmpFile
+[[ -z "${1}" ]] && echo "NO_MSG" >> $tmpFile || echo "$*" >> $tmpFile
+
+curl -s -X POST $BOTURL -d chat_id=$CHATID -d text="$(cat $tmpFile)" > /dev/null 2>&1 && echo "TRANSMITTED" || echo "FAILED"
+
+rm $tmpFile
+
+# ------------------------------------------------------------------------
+# EOF
+# ------------------------------------------------------------------------
